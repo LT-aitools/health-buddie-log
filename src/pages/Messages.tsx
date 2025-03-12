@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/layout/Navbar";
 import MessageInput from "@/components/Messages/MessageInput";
@@ -16,7 +15,6 @@ const Messages = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Simulate loading
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
@@ -24,13 +22,11 @@ const Messages = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSendMessage = (content: string, channel: MessageChannel) => {
-    // Create a new message object
     const newUserMessage: Message = {
       id: `user-${Date.now()}`,
       content,
@@ -40,17 +36,13 @@ const Messages = () => {
       processed: false,
     };
 
-    // Add the user message to the chat
     setMessages((prev) => [...prev, newUserMessage]);
 
-    // Process the message
     setTimeout(() => {
-      // Check if it's a voice message and needs transcription
       if (channel === "voice") {
         const { confidence } = processHealthMessage(content);
         newUserMessage.confidence = confidence;
 
-        // Check confidence level
         if (confidence < 0.85) {
           setTimeout(() => {
             const lowConfidenceResponse: Message = {
@@ -72,7 +64,6 @@ const Messages = () => {
         }
       }
 
-      // Check if it's a status request
       if (content.trim().toLowerCase() === "status") {
         const statusResponse: Message = {
           id: `system-${Date.now()}`,
@@ -92,14 +83,11 @@ const Messages = () => {
         return;
       }
 
-      // Process as a health log
       const healthLog = messageToHealthLog(newUserMessage);
       const responseContent = generateResponse(healthLog);
       
-      // Mark the user message as processed
       newUserMessage.processed = true;
       
-      // Create a response message
       const responseMessage: Message = {
         id: `system-${Date.now()}`,
         content: responseContent,
@@ -108,10 +96,8 @@ const Messages = () => {
         channel,
       };
       
-      // Add the response message
       setMessages((prev) => [...prev.map(m => m.id === newUserMessage.id ? newUserMessage : m), responseMessage]);
       
-      // Show a toast for successful logging
       if (healthLog) {
         toast({
           title: `${healthLog.category === 'exercise' ? 'Exercise' : 'Food'} Logged`,
