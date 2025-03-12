@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mic, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MessageChannel } from "@/lib/types";
@@ -15,6 +15,20 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage }) => {
   const [message, setMessage] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [channel, setChannel] = useState<MessageChannel>("whatsapp");
+  const [twilioEnabled, setTwilioEnabled] = useState(false);
+  
+  useEffect(() => {
+    // Check if Twilio is set up
+    const twilioAccount = localStorage.getItem("twilioAccount");
+    if (twilioAccount) {
+      try {
+        const parsed = JSON.parse(twilioAccount);
+        setTwilioEnabled(parsed.isSetup === true);
+      } catch (e) {
+        console.error("Error parsing Twilio account:", e);
+      }
+    }
+  }, []);
 
   const handleSend = () => {
     if (message.trim() === "") return;
@@ -76,6 +90,32 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage }) => {
           >
             iMessage
           </button>
+          {twilioEnabled && (
+            <>
+              <button
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-medium transition-all",
+                  channel === "sms"
+                    ? "bg-primary text-white"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                onClick={() => setChannel("sms")}
+              >
+                Twilio SMS
+              </button>
+              <button
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-medium transition-all",
+                  channel === "twilio-whatsapp"
+                    ? "bg-primary text-white"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                onClick={() => setChannel("twilio-whatsapp")}
+              >
+                Twilio WhatsApp
+              </button>
+            </>
+          )}
         </div>
       </div>
       
@@ -118,6 +158,11 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage }) => {
           <li>"Had a salad with grilled chicken for lunch"</li>
           <li>"status" - to request a weekly report</li>
         </ul>
+        {!twilioEnabled && (
+          <div className="mt-3 p-2 bg-secondary rounded-md">
+            <p>Want to use real SMS or WhatsApp? <a href="/twilio-setup" className="text-primary underline">Set up Twilio integration</a></p>
+          </div>
+        )}
       </div>
     </div>
   );

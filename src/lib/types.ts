@@ -1,7 +1,7 @@
 
 export type MessageType = 'incoming' | 'outgoing';
 export type HealthCategory = 'exercise' | 'food';
-export type MessageChannel = 'whatsapp' | 'imessage' | 'voice';
+export type MessageChannel = 'whatsapp' | 'imessage' | 'voice' | 'sms' | 'twilio-whatsapp';
 
 export interface HealthLog {
   id: string;
@@ -29,6 +29,7 @@ export interface Message {
   channel: MessageChannel;
   confidence?: number;
   processed?: boolean;
+  phoneNumber?: string; // Add phone number for Twilio messages
 }
 
 export interface CareTemplate {
@@ -52,4 +53,11 @@ export interface PDFReportOptions {
   startDate: Date;
   endDate: Date;
   includeRawMessages: boolean;
+}
+
+export interface TwilioAccount {
+  accountSid: string;
+  authToken: string;
+  phoneNumber: string;
+  isSetup: boolean;
 }
