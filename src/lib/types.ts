@@ -61,3 +61,25 @@ export interface TwilioAccount {
   phoneNumber: string;
   isSetup: boolean;
 }
+
+// New types for user authentication
+export interface User {
+  id: string;
+  phoneNumber: string;
+  name?: string;
+  createdAt: Date;
+  lastActive: Date;
+  verified: boolean;
+}
+
+export interface AuthState {
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  error?: string;
+}
+
+export interface VerificationRequest {
+  phoneNumber: string;
+  verificationCode?: string;
+}

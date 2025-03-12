@@ -172,7 +172,7 @@ const Messages = () => {
                             <Check className="h-3 w-3 mr-1" />
                           )}
                           <span className="text-xs opacity-70">
-                            {message.channel !== "outgoing" && message.channel}
+                            {message.type !== "outgoing" && message.channel}
                           </span>
                           <span className="text-xs opacity-70 ml-auto">
                             {formatMessageTime(new Date(message.timestamp))}

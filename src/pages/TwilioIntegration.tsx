@@ -212,7 +212,10 @@ const TwilioIntegration = () => {
                       <p className="text-muted-foreground mb-4">
                         Please complete the Twilio account setup first
                       </p>
-                      <Button variant="outline" onClick={() => document.querySelector('[data-value="setup"]')?.click()}>
+                      <Button variant="outline" onClick={() => {
+                        const setupTab = document.querySelector('[data-value="setup"]');
+                        if (setupTab instanceof HTMLElement) setupTab.click();
+                      }}>
                         Go to Setup
                       </Button>
                     </div>
@@ -291,7 +294,10 @@ const TwilioIntegration = () => {
                       <p className="text-muted-foreground mb-4">
                         Please complete the Twilio account setup first
                       </p>
-                      <Button variant="outline" onClick={() => document.querySelector('[data-value="setup"]')?.click()}>
+                      <Button variant="outline" onClick={() => {
+                        const setupTab = document.querySelector('[data-value="setup"]');
+                        if (setupTab instanceof HTMLElement) setupTab.click();
+                      }}>
                         Go to Setup
                       </Button>
                     </div>

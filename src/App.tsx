@@ -10,6 +10,7 @@ import Messages from "./pages/Messages";
 import Reports from "./pages/Reports";
 import Templates from "./pages/Templates";
 import TwilioIntegration from "./pages/TwilioIntegration";
+import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/reports" element={<Reports />} />
           <Route path="/templates" element={<Templates />} />
           <Route path="/twilio-setup" element={<TwilioIntegration />} />
+          <Route path="/auth" element={<Auth />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
