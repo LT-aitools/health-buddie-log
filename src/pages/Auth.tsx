@@ -68,23 +68,30 @@ const Auth = () => {
     }, 1500);
   };
 
-  const formatPhoneNumber = (value: string) => {
+  const formatIsraeliPhoneNumber = (value: string) => {
     // Strip all non-numeric characters
     const phoneDigits = value.replace(/\D/g, "");
     
-    // Format as (XXX) XXX-XXXX for US numbers
+    // Format as 05X-XXX-XXXX for Israeli numbers
     if (phoneDigits.length <= 3) {
       return phoneDigits;
     } else if (phoneDigits.length <= 6) {
-      return `(${phoneDigits.slice(0, 3)}) ${phoneDigits.slice(3)}`;
+      return `${phoneDigits.slice(0, 3)}-${phoneDigits.slice(3)}`;
     } else {
-      return `(${phoneDigits.slice(0, 3)}) ${phoneDigits.slice(3, 6)}-${phoneDigits.slice(6, 10)}`;
+      return `${phoneDigits.slice(0, 3)}-${phoneDigits.slice(3, 6)}-${phoneDigits.slice(6, 10)}`;
     }
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formattedNumber = formatPhoneNumber(e.target.value);
+    const formattedNumber = formatIsraeliPhoneNumber(e.target.value);
     setPhoneNumber(formattedNumber);
+  };
+
+  // Check if the Israeli phone number is valid
+  const isValidIsraeliPhone = (phone: string) => {
+    // Simple validation for Israeli mobile numbers starting with 05
+    const digitsOnly = phone.replace(/\D/g, "");
+    return digitsOnly.length >= 9 && digitsOnly.length <= 10 && digitsOnly.startsWith("05");
   };
 
   return (
@@ -114,18 +121,18 @@ const Auth = () => {
                   <Label htmlFor="phone">Phone Number</Label>
                   <div className="flex">
                     <div className="bg-secondary flex items-center justify-center px-3 rounded-l-md border-y border-l border-input">
-                      <PhoneIcon className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">+972</span>
                     </div>
                     <Input
                       id="phone"
                       className="rounded-l-none"
-                      placeholder="(555) 123-4567"
+                      placeholder="05X-XXX-XXXX"
                       value={phoneNumber}
                       onChange={handlePhoneChange}
                     />
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    We'll send a verification code to this number
+                    We'll send a verification code to this Israeli number
                   </p>
                 </div>
               </div>
@@ -144,6 +151,7 @@ const Auth = () => {
                     For this demo, use the code "123456"
                   </p>
                 </div>
+                <p className="text-sm text-primary">Code sent to: +972 {phoneNumber}</p>
               </div>
             )}
           </CardContent>
@@ -151,7 +159,7 @@ const Auth = () => {
             <Button 
               className="w-full" 
               onClick={step === "phone" ? handleSendVerification : handleVerifyCode}
-              disabled={isLoading || (step === "phone" ? phoneNumber.length < 10 : verificationCode.length !== 6)}
+              disabled={isLoading || (step === "phone" ? !isValidIsraeliPhone(phoneNumber) : verificationCode.length !== 6)}
             >
               {isLoading 
                 ? "Processing..." 
