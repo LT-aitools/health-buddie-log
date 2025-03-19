@@ -1,17 +1,17 @@
-
 import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import { motion } from "framer-motion";
-import { FileText, Calendar } from "lucide-react";
+import { FileText, Calendar, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PDFReport from "@/components/Reports/PDFReport";
-import { mockHealthLogs } from "@/lib/mock-data";
-import { PDFReportOptions } from "@/lib/types";
-import { useToast } from "@/components/ui/use-toast";
+import { PDFReportOptions, HealthLog } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
+import { getHealthData } from "@/lib/api";
 
 const Reports = () => {
   const [loading, setLoading] = useState(true);
   const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [healthLogs, setHealthLogs] = useState<HealthLog[]>([]);
   const { toast } = useToast();
 
   // Set up default report options (last 7 days)
@@ -25,19 +25,83 @@ const Reports = () => {
     includeRawMessages: true,
   });
 
-  // Filter logs based on date range
-  const filteredLogs = mockHealthLogs.filter(log => {
-    const logDate = new Date(log.timestamp);
-    return logDate >= reportOptions.startDate && logDate <= reportOptions.endDate;
-  });
-
-  // Simulate loading
+  // Fetch data on component mount
   useEffect(() => {
-    const timer = setTimeout(() => {
+    fetchHealthData();
+  }, [reportOptions.startDate, reportOptions.endDate]);
+
+  const fetchHealthData = async () => {
+    try {
+      setLoading(true);
+      
+      // Calculate number of days between start and end dates
+      const daysDiff = Math.ceil(
+        (reportOptions.endDate.getTime() - reportOptions.startDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      
+      const response = await getHealthData(daysDiff);
+      
+      if (response.success) {
+        const { data } = response;
+        
+        // Process exercise logs into HealthLog format
+        const exerciseLogs = data.exerciseLogs.map((log: any) => ({
+          id: `exercise-${Date.now()}-${Math.random()}`,
+          timestamp: new Date(log.date),
+          rawMessage: `Exercise: ${log.type} for ${log.duration} minutes`,
+          category: 'exercise' as const,
+          confidence: 0.95,
+          processed: {
+            exercise: {
+              duration: log.duration,
+              type: log.type,
+              distance: log.distance
+            }
+          }
+        }));
+        
+        // Process food logs into HealthLog format
+        const foodLogs = data.foodLogs.map((log: any) => ({
+          id: `food-${Date.now()}-${Math.random()}`,
+          timestamp: new Date(log.date),
+          rawMessage: `Food: ${log.foodItems}`,
+          category: 'food' as const,
+          confidence: 0.95,
+          processed: {
+            food: {
+              description: log.foodItems
+            }
+          }
+        }));
+        
+        // Combine logs
+        const allLogs = [...exerciseLogs, ...foodLogs];
+        
+        // Filter logs based on date range
+        const filteredLogs = allLogs.filter(log => {
+          const logDate = new Date(log.timestamp);
+          return logDate >= reportOptions.startDate && logDate <= reportOptions.endDate;
+        }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        
+        setHealthLogs(filteredLogs);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to fetch health data",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching health data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to connect to the server",
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
+    }
+  };
 
   const handleDownloadPDF = () => {
     setGeneratingPDF(true);
@@ -137,11 +201,14 @@ const Reports = () => {
                       >
                         {generatingPDF ? (
                           <>
-                            <div className="mr-2 h-4 w-4 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Generating...
                           </>
                         ) : (
-                          <>Generate PDF</>
+                          <>
+                            <Download className="mr-2 h-4 w-4" />
+                            Generate PDF
+                          </>
                         )}
                       </Button>
                     </div>
@@ -149,11 +216,30 @@ const Reports = () => {
                 </div>
               </div>
 
-              <PDFReport 
-                logs={filteredLogs}
-                options={reportOptions}
-                onDownload={handleDownloadPDF}
-              />
+              {healthLogs.length > 0 ? (
+                <PDFReport 
+                  logs={healthLogs}
+                  options={reportOptions}
+                  onDownload={handleDownloadPDF}
+                />
+              ) : (
+                <div className="glass-card rounded-2xl p-8 text-center">
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-xl font-medium">No Health Data for Selected Period</h3>
+                  <p className="text-muted-foreground mt-2 mb-6">
+                    Try adjusting the date range or send health updates via WhatsApp to see data here.
+                  </p>
+                  <div className="bg-secondary/70 p-4 rounded-lg inline-block text-left">
+                    <p className="font-medium">Example messages to send:</p>
+                    <ul className="list-disc pl-5 mt-2 space-y-1 text-sm">
+                      <li>I ran for 30 minutes today</li>
+                      <li>Had a salad with grilled chicken for lunch</li>
+                      <li>Walked 2 miles this morning</li>
+                      <li>Type "status" to get your weekly report</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
               
               <p className="text-sm text-muted-foreground text-center mt-8">
                 Reports are generated on-demand and reflect your logged health activities during the selected time period.

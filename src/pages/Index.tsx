@@ -1,20 +1,105 @@
-
-import WeeklySummary from "@/components/Dashboard/WeeklySummary";
-import { mockHealthLogs, mockWeeklySummary } from "@/lib/mock-data";
 import { useState, useEffect } from "react";
+import WeeklySummary from "@/components/Dashboard/WeeklySummary";
 import Navbar from "@/components/layout/Navbar";
 import { motion } from "framer-motion";
+import { HealthLog, WeeklySummary as WeeklySummaryType } from "@/lib/types";
+import { getHealthData } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [loading, setLoading] = useState(true);
+  const [weeklySummary, setWeeklySummary] = useState<WeeklySummaryType | null>(null);
+  const [recentLogs, setRecentLogs] = useState<HealthLog[]>([]);
+  const { toast } = useToast();
 
-  // Simulate loading
+  // Fetch data on component mount
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    fetchHealthData();
   }, []);
+
+  const fetchHealthData = async () => {
+    try {
+      setLoading(true);
+      const response = await getHealthData(7); // Get last 7 days
+      
+      if (response.success) {
+        const { data } = response;
+        
+        // Process exercise logs into HealthLog format
+        const exerciseLogs = data.exerciseLogs.map((log: any) => ({
+          id: `exercise-${Date.now()}-${Math.random()}`,
+          timestamp: new Date(log.date),
+          rawMessage: `Exercise: ${log.type} for ${log.duration} minutes`,
+          category: 'exercise' as const,
+          confidence: 0.95,
+          processed: {
+            exercise: {
+              duration: log.duration,
+              type: log.type,
+              distance: log.distance
+            }
+          }
+        }));
+        
+        // Process food logs into HealthLog format
+        const foodLogs = data.foodLogs.map((log: any) => ({
+          id: `food-${Date.now()}-${Math.random()}`,
+          timestamp: new Date(log.date),
+          rawMessage: `Food: ${log.foodItems}`,
+          category: 'food' as const,
+          confidence: 0.95,
+          processed: {
+            food: {
+              description: log.foodItems
+            }
+          }
+        }));
+        
+        // Combine and sort logs by timestamp (newest first)
+        const allLogs = [...exerciseLogs, ...foodLogs].sort(
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+        
+        setRecentLogs(allLogs);
+        
+        // Calculate exercise types for summary
+        const exerciseTypes: {[key: string]: number} = {};
+        exerciseLogs.forEach(log => {
+          const type = log.processed.exercise?.type || 'unknown';
+          exerciseTypes[type] = (exerciseTypes[type] || 0) + 1;
+        });
+        
+        // Create summary data
+        const summary: WeeklySummaryType = {
+          exerciseCount: exerciseLogs.length,
+          averageExerciseDuration: exerciseLogs.length ? 
+            (exerciseLogs.reduce((sum, log) => sum + (log.processed.exercise?.duration || 0), 0) / exerciseLogs.length) : 
+            0,
+          exerciseTypes,
+          foodLogCount: foodLogs.length,
+          startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+          endDate: new Date() // Now
+        };
+        
+        setWeeklySummary(summary);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to fetch health data",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching health data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to connect to the server",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const container = {
     hidden: { opacity: 0 },
@@ -57,9 +142,27 @@ const Index = () => {
               </div>
             </motion.div>
 
-            <motion.div variants={item}>
-              <WeeklySummary summary={mockWeeklySummary} recentLogs={mockHealthLogs.slice(0, 5)} />
-            </motion.div>
+            {weeklySummary ? (
+              <motion.div variants={item}>
+                <WeeklySummary summary={weeklySummary} recentLogs={recentLogs.slice(0, 5)} />
+              </motion.div>
+            ) : (
+              <motion.div variants={item} className="glass-card rounded-2xl p-8 text-center">
+                <h3 className="text-xl font-medium mb-3">No Health Data Yet</h3>
+                <p className="text-muted-foreground mb-6">
+                  Start sending health updates via WhatsApp to see your progress here.
+                </p>
+                <div className="bg-secondary/70 p-4 rounded-lg inline-block text-left">
+                  <p className="font-medium">Example messages to send:</p>
+                  <ul className="list-disc pl-5 mt-2 space-y-1 text-sm">
+                    <li>I ran for 30 minutes today</li>
+                    <li>Had a salad with grilled chicken for lunch</li>
+                    <li>Walked 2 miles this morning</li>
+                    <li>Type "status" to get your weekly report</li>
+                  </ul>
+                </div>
+              </motion.div>
+            )}
 
             <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="glass-card rounded-2xl flex flex-col items-center text-center p-8 space-y-4">
