@@ -1,115 +1,121 @@
 import { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/layout/Navbar";
 import MessageInput from "@/components/Messages/MessageInput";
-import { mockMessages } from "@/lib/mock-data";
-import { Message, MessageChannel, MessageType } from "@/lib/types";
-import { generateResponse, messageToHealthLog, processHealthMessage } from "@/lib/health-processor";
+import { Message } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, Mic, Check } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { getMessages } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 const Messages = () => {
-  const [messages, setMessages] = useState<Message[]>(mockMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    fetchMessages();
   }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSendMessage = (content: string, channel: MessageChannel) => {
-    const newUserMessage: Message = {
-      id: `user-${Date.now()}`,
-      content,
-      timestamp: new Date(),
-      type: "incoming",
-      channel,
-      processed: false,
-    };
-
-    setMessages((prev) => [...prev, newUserMessage]);
-
-    setTimeout(() => {
-      if (channel === "voice") {
-        const { confidence } = processHealthMessage(content);
-        newUserMessage.confidence = confidence;
-
-        if (confidence < 0.85) {
-          setTimeout(() => {
-            const lowConfidenceResponse: Message = {
-              id: `system-${Date.now()}`,
-              content: "I'm not entirely sure I understood that correctly. Could you please send it as a text message instead?",
-              timestamp: new Date(),
-              type: "outgoing",
-              channel,
-            };
-            setMessages((prev) => [...prev, lowConfidenceResponse]);
-            
-            toast({
-              title: "Low Confidence Transcription",
-              description: "The system couldn't transcribe your message with high confidence. Please try sending it as text.",
-              variant: "default",
-            });
-          }, 1000);
-          return;
-        }
-      }
-
-      if (content.trim().toLowerCase() === "status") {
-        const statusResponse: Message = {
-          id: `system-${Date.now()}`,
-          content: "Generating your weekly health report. A PDF will be sent to you shortly.",
-          timestamp: new Date(),
-          type: "outgoing",
-          channel,
-        };
-        
-        setMessages((prev) => [...prev, statusResponse]);
-        
+  const fetchMessages = async () => {
+    setLoading(true);
+    try {
+      const response = await getMessages();
+      if (response.success) {
+        // Add system responses to the messages
+        const messagesWithResponses = addSystemResponses(response.messages);
+        setMessages(messagesWithResponses);
+      } else {
         toast({
-          title: "Report Requested",
-          description: "Your weekly health report is being generated.",
-          variant: "default",
+          title: "Error",
+          description: "Failed to fetch messages",
+          variant: "destructive",
         });
-        return;
       }
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      toast({
+        title: "Error",
+        description: "Failed to connect to the server",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      const healthLog = messageToHealthLog(newUserMessage);
-      const responseContent = generateResponse(healthLog);
+  // Helper function to add system responses based on incoming messages
+  const addSystemResponses = (incomingMessages: Message[]) => {
+    const messagesWithResponses: Message[] = [];
+    
+    incomingMessages.forEach((message) => {
+      // Add the original message
+      messagesWithResponses.push(message);
       
-      newUserMessage.processed = true;
-      
+      // Generate a response message
       const responseMessage: Message = {
-        id: `system-${Date.now()}`,
-        content: responseContent,
-        timestamp: new Date(),
+        id: `response-${message.id}`,
+        content: generateResponseContent(message),
+        timestamp: new Date(new Date(message.timestamp).getTime() + 60000), // 1 minute after original
         type: "outgoing",
-        channel,
+        channel: message.channel,
       };
       
-      setMessages((prev) => [...prev.map(m => m.id === newUserMessage.id ? newUserMessage : m), responseMessage]);
+      messagesWithResponses.push(responseMessage);
+    });
+    
+    // Sort by timestamp, newest first
+    return messagesWithResponses.sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+  };
+
+  // Helper function to generate response content based on message
+  const generateResponseContent = (message: Message) => {
+    if (message.category === 'exercise') {
+      const duration = message.processed_data?.exercise?.duration;
+      const type = message.processed_data?.exercise?.type;
       
-      if (healthLog) {
-        toast({
-          title: `${healthLog.category === 'exercise' ? 'Exercise' : 'Food'} Logged`,
-          description: "Your health update has been successfully recorded.",
-          variant: "default",
-        });
+      if (duration && type) {
+        return `Your ${duration}-minute ${type} session has been logged. Great job!`;
+      } else if (duration) {
+        return `Your ${duration}-minute workout has been logged. Keep it up!`;
+      } else if (type) {
+        return `Your ${type} session has been logged. Way to go!`;
+      } else {
+        return `Your exercise has been logged. Keep up the good work!`;
       }
-    }, 1000);
+    } else if (message.category === 'food') {
+      const description = message.processed_data?.food?.description;
+      
+      if (description) {
+        return `Your meal "${description}" has been logged. Nutritious choice!`;
+      } else {
+        return `Your food intake has been recorded. Thanks for keeping track!`;
+      }
+    } else if (message.content.toLowerCase().includes('status')) {
+      return `Generating your weekly health report. Check the Reports tab for details.`;
+    } else {
+      return `Your health update has been recorded. Thanks!`;
+    }
+  };
+
+  const handleSendMessage = (content: string, channel: string) => {
+    toast({
+      title: "Message Sent",
+      description: "Please send your actual message via WhatsApp for tracking.",
+    });
   };
 
   const formatMessageTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    return new Date(date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -131,66 +137,73 @@ const Messages = () => {
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">Messages</h1>
                 <p className="text-muted-foreground">
-                  Send health updates and get insights through natural conversation
+                  View your WhatsApp health tracking message history
                 </p>
               </div>
             </div>
 
             <div className="glass-card rounded-2xl mb-6 overflow-hidden">
-              <div className="border-b border-border p-4 flex items-center">
-                <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
-                <span className="font-medium">HealthBuddie Assistant</span>
+              <div className="border-b border-border p-4 flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                  <span className="font-medium">HealthBuddie Assistant</span>
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {user?.phoneNumber}
+                </span>
               </div>
               
               <div className="h-[400px] overflow-y-auto p-4 space-y-4">
-                <AnimatePresence>
-                  {messages.map((message) => (
-                    <motion.div
-                      key={message.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className={cn(
-                        "flex",
-                        message.type === "incoming" ? "justify-end" : "justify-start"
-                      )}
-                    >
-                      <div
+                {messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium">No Messages Yet</h3>
+                    <p className="text-muted-foreground max-w-xs mt-2">
+                      Send a WhatsApp message to your Twilio number to start tracking your health.
+                    </p>
+                  </div>
+                ) : (
+                  <AnimatePresence>
+                    {messages.map((message) => (
+                      <motion.div
+                        key={message.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
                         className={cn(
-                          "max-w-[75%] rounded-2xl px-4 py-2 flex flex-col",
-                          message.type === "incoming"
-                            ? "bg-primary text-primary-foreground rounded-tr-none"
-                            : "bg-secondary text-secondary-foreground rounded-tl-none"
+                          "flex",
+                          message.type === "incoming" ? "justify-end" : "justify-start"
                         )}
                       >
-                        <div className="flex items-center mb-1">
-                          {message.type === "incoming" && message.channel === "voice" && (
-                            <Mic className="h-3 w-3 mr-1" />
+                        <div
+                          className={cn(
+                            "max-w-[75%] rounded-2xl px-4 py-2 flex flex-col",
+                            message.type === "incoming"
+                              ? "bg-primary text-primary-foreground rounded-tr-none"
+                              : "bg-secondary text-secondary-foreground rounded-tl-none"
                           )}
-                          {message.type === "incoming" && message.processed && (
-                            <Check className="h-3 w-3 mr-1" />
-                          )}
-                          <span className="text-xs opacity-70">
-                            {message.type !== "outgoing" && message.channel}
-                          </span>
-                          <span className="text-xs opacity-70 ml-auto">
-                            {formatMessageTime(new Date(message.timestamp))}
-                          </span>
+                        >
+                          <div className="flex items-center mb-1">
+                            {message.type === "incoming" && message.channel === "voice" && (
+                              <Mic className="h-3 w-3 mr-1" />
+                            )}
+                            {message.type === "incoming" && message.processed && (
+                              <Check className="h-3 w-3 mr-1" />
+                            )}
+                            <span className="text-xs opacity-70">
+                              {message.type !== "outgoing" && message.channel}
+                            </span>
+                            <span className="text-xs opacity-70 ml-auto">
+                              {formatMessageTime(message.timestamp)}
+                            </span>
+                          </div>
+                          <p className="text-sm">{message.content}</p>
                         </div>
-                        <p className="text-sm">{message.content}</p>
-                        {message.confidence && (
-                          <span className={cn(
-                            "text-xs mt-1",
-                            message.confidence < 0.85 ? "text-red-300" : "opacity-70"
-                          )}>
-                            Confidence: {(message.confidence * 100).toFixed(0)}%
-                          </span>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                )}
                 <div ref={messagesEndRef} />
               </div>
             </div>

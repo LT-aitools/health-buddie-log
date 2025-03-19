@@ -1,89 +1,133 @@
-// src/services/apiService.js
+// src/lib/api.ts
 
-import config from '../config';
+// Change this to your actual backend URL (use .env in production)
+const API_BASE_URL = 'http://localhost:3000/api';
+
+// Helper function to get token from localStorage
+const getToken = () => localStorage.getItem('healthBuddieToken');
+
+// Common headers with Authorization
+const getHeaders = () => {
+  const token = getToken();
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : ''
+  };
+};
 
 /**
- * This service handles all communication with your backend server
+ * Login with phone number
+ * @param phoneNumber - User's phone number
  */
-
-// Helper function for making API requests
-async function fetchWithAuth(endpoint, options = {}) {
-  // Get user from localStorage
-  const userJson = localStorage.getItem('healthBuddieUser');
-  if (!userJson) {
-    throw new Error('User not authenticated');
-  }
-  
-  const user = JSON.parse(userJson);
-  
-  // Set up headers with authentication
-  const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${user.phoneNumber}`,
-    ...options.headers
-  };
-  
+export const login = async (phoneNumber: string) => {
   try {
-    const response = await fetch(`${config.apiBaseUrl}${endpoint}`, {
-      ...options,
-      headers
+    const response = await fetch(`${API_BASE_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phoneNumber })
     });
     
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      const error = await response.json();
+      throw new Error(error.error || 'Login failed');
+    }
+    
+    const data = await response.json();
+    
+    // Save token to localStorage
+    if (data.token) {
+      localStorage.setItem('healthBuddieToken', data.token);
+      localStorage.setItem('healthBuddieUser', JSON.stringify(data.user));
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Logout - clear token and user data
+ */
+export const logout = () => {
+  localStorage.removeItem('healthBuddieToken');
+  localStorage.removeItem('healthBuddieUser');
+};
+
+/**
+ * Check if user is logged in
+ */
+export const isAuthenticated = () => {
+  return !!getToken();
+};
+
+/**
+ * Get user health data
+ * @param days - Number of days to look back (default: 7)
+ */
+export const getHealthData = async (days = 7) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/health-data?days=${days}`, {
+      method: 'GET',
+      headers: getHeaders()
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to get health data');
     }
     
     return await response.json();
   } catch (error) {
-    console.error('API request failed:', error);
+    console.error('Error fetching health data:', error);
     throw error;
   }
-}
-
-// Verify a user's phone number and get access
-export async function verifyUser(phoneNumber, verificationCode) {
-  const response = await fetch(`${config.apiBaseUrl}/api/verify`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ phoneNumber, verificationCode })
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Verification failed: ${response.status}`);
-  }
-  
-  return await response.json();
-}
-
-// Get a user's health logs
-export async function getUserHealthLogs() {
-  return fetchWithAuth('/api/health-logs');
-}
-
-// Get a user's weekly summary
-export async function getWeeklySummary() {
-  return fetchWithAuth('/api/weekly-summary');
-}
-
-// Generate a PDF report
-export async function generatePdfReport(startDate, endDate) {
-  return fetchWithAuth('/api/reports/generate', {
-    method: 'POST',
-    body: JSON.stringify({ 
-      startDate: startDate.toISOString(), 
-      endDate: endDate.toISOString() 
-    })
-  });
-}
-
-// Default export
-const apiService = {
-  verifyUser,
-  getUserHealthLogs,
-  getWeeklySummary,
-  generatePdfReport
 };
 
-export default apiService;
+/**
+ * Get recent messages
+ */
+export const getMessages = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/messages`, {
+      method: 'GET',
+      headers: getHeaders()
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to get messages');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    throw error;
+  }
+};
+
+export const getMessages = async () => {
+  try {
+    console.log('Fetching messages from:', `${API_BASE_URL}/messages`);
+    console.log('Headers:', getHeaders());
+    
+    const response = await fetch(`${API_BASE_URL}/messages`, {
+      method: 'GET',
+      headers: getHeaders()
+    });
+    
+    console.log('Response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
+      throw new Error(errorText || 'Failed to get messages');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    throw error;
+  }
+};

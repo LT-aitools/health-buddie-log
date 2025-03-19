@@ -1,9 +1,8 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext"; // Import AuthProvider
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Messages from "./pages/Messages";
@@ -11,17 +10,24 @@ import Reports from "./pages/Reports";
 import Templates from "./pages/Templates";
 import TwilioIntegration from "./pages/TwilioIntegration";
 import Auth from "./pages/Auth";
-import PrivateRoute from "./components/common/PrivateRoute"; // We'll create this next
+
+// Import the AuthProvider
+import { AuthProvider } from "./context/AuthContext";
+// Import the PrivateRoute
+import PrivateRoute from "./components/common/PrivateRoute";
+// Change BrowserRouter to HashRouter
+import { HashRouter as Router, Routes, Route } from "react-router-dom";
+
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider> {/* Wrap all components in AuthProvider */}
+    <AuthProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <Router>
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
@@ -31,10 +37,9 @@ const App = () => (
             <Route path="/twilio-setup" element={<PrivateRoute><TwilioIntegration /></PrivateRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
+        </Router>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
-
 export default App;

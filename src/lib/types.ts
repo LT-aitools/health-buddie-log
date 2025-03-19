@@ -1,3 +1,4 @@
+// src/lib/types.ts
 
 export type MessageType = 'incoming' | 'outgoing';
 export type HealthCategory = 'exercise' | 'food';
@@ -8,17 +9,17 @@ export interface HealthLog {
   timestamp: Date;
   rawMessage: string;
   category: HealthCategory;
+  confidence: number;
   processed: {
     exercise?: {
-      duration?: number; // minutes
-      distance?: number; // miles/km
-      type?: string; // running, walking, etc.
+      duration?: number; 
+      distance?: number;
+      type?: string;
     };
     food?: {
-      description: string;
+      description?: string;
     };
   };
-  confidence: number;
 }
 
 export interface Message {
@@ -29,14 +30,24 @@ export interface Message {
   channel: MessageChannel;
   confidence?: number;
   processed?: boolean;
-  phoneNumber?: string; // Add phone number for Twilio messages
+  processed_data?: {
+    exercise?: {
+      duration?: number;
+      type?: string;
+      distance?: string;
+    };
+    food?: {
+      description?: string;
+    }
+  };
+  category?: HealthCategory;
 }
 
 export interface CareTemplate {
   id: string;
   name: string;
   category: HealthCategory;
-  frequency: string; // e.g., "3 times a week"
+  frequency: string;
   active: boolean;
 }
 
@@ -55,14 +66,6 @@ export interface PDFReportOptions {
   includeRawMessages: boolean;
 }
 
-export interface TwilioAccount {
-  accountSid: string;
-  authToken: string;
-  phoneNumber: string;
-  isSetup: boolean;
-}
-
-// New types for user authentication
 export interface User {
   id: string;
   phoneNumber: string;
@@ -70,16 +73,4 @@ export interface User {
   createdAt: Date;
   lastActive: Date;
   verified: boolean;
-}
-
-export interface AuthState {
-  user: User | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  error?: string;
-}
-
-export interface VerificationRequest {
-  phoneNumber: string;
-  verificationCode?: string;
 }
