@@ -1,7 +1,7 @@
 // src/lib/api.ts
 
 // Change this to your actual backend URL (use .env in production)
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api';
+const API_BASE_URL = 'https://health-tracker-new-app-7de8aa984308.herokuapp.com/api' //process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api';
 
 
 // Helper function to get token from localStorage
@@ -12,7 +12,8 @@ const getHeaders = () => {
   const token = getToken();
   return {
     'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : ''
+    'Authorization': token ? `Bearer ${token}` : '',
+    'Access-Control-Allow-Origin': '*'
   };
 };
 

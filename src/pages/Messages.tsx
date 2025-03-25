@@ -25,6 +25,7 @@ const Messages = () => {
   }, [messages]);
 
   const fetchMessages = async () => {
+    console.log("Fetching messages123");
     setLoading(true);
     try {
       const response = await getMessages();

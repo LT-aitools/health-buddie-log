@@ -1,7 +1,7 @@
 // src/lib/api.ts
 
 // Your specific Heroku URL
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api';
+const API_BASE_URL = 'https://health-tracker-new-app-7de8aa984308.herokuapp.com/api' //process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api';
 
 
 // Helper function to get token from localStorage
@@ -103,8 +103,8 @@ export const getMessages = async () => {
     if (!user.phoneNumber) {
       throw new Error('Phone number is missing. Please log in again.');
     }
-    
-    const response = await fetch(`${API_BASE_URL}/messages`, {
+    console.log("Fetching messages from:", `${API_BASE_URL}/messages`);
+    const response = await fetch(`${API_BASE_URL}/messages?phoneNumber=${user.phoneNumber}`, {
       method: 'GET',
       headers: getHeaders()
     });
