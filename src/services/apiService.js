@@ -1,7 +1,8 @@
 // src/lib/api.ts
 
 // Change this to your actual backend URL (use .env in production)
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api';
+
 
 // Helper function to get token from localStorage
 const getToken = () => localStorage.getItem('healthBuddieToken');
@@ -85,27 +86,6 @@ export const getHealthData = async (days = 7) => {
   }
 };
 
-/**
- * Get recent messages
- */
-export const getMessages = async () => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/messages`, {
-      method: 'GET',
-      headers: getHeaders()
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to get messages');
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching messages:', error);
-    throw error;
-  }
-};
 
 export const getMessages = async () => {
   try {

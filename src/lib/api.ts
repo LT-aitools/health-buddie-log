@@ -3,6 +3,7 @@
 // Your specific Heroku URL
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api';
 
+
 // Helper function to get token from localStorage
 const getToken = () => localStorage.getItem('healthBuddieToken');
 
