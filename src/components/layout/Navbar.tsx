@@ -1,10 +1,13 @@
+// src/components/layout/Navbar.tsx
 
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "react-router-dom";
-import { BarChart, MessageSquare, FileText, Settings } from "lucide-react";
+import { BarChart, MessageSquare, FileText, Settings, LogOut } from "lucide-react";
+import { useAuth } from "@/context/AuthContext"; // Add this import
 
 const Navbar = () => {
   const location = useLocation();
+  const { logout } = useAuth(); // Add this to access the logout function
   
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -41,6 +44,18 @@ const Navbar = () => {
               </Link>
             </li>
           ))}
+          
+          {/* Add this logout button */}
+          <li>
+            <button
+              onClick={logout}
+              className="flex items-center px-3 md:px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+              aria-label="Logout"
+            >
+              <LogOut className="h-5 w-5 md:mr-2" />
+              <span className="hidden md:inline">Logout</span>
+            </button>
+          </li>
         </ul>
       </div>
     </nav>
