@@ -1,6 +1,6 @@
 // src/lib/api.ts
 
-// Your specific Heroku URL
+// Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://health-tracker-new-app-7de8aa984308.herokuapp.com/api';
 
 // Helper function to get token from localStorage
@@ -21,20 +21,16 @@ const getPhoneNumber = () => {
 };
 
 // Common headers with Authorization and Phone Number
-// Update the getHeaders function
 const getHeaders = () => {
   const token = getToken();
   const phoneNumber = getPhoneNumber();
   
-  // Ensure phone number is cleaned of any formatting
-  const cleanPhoneNumber = phoneNumber ? phoneNumber.replace(/[^\d+]/g, "") : "";
-  
-  console.log('Creating headers with phone number:', cleanPhoneNumber);
+  console.log('Creating headers with phone number:', phoneNumber);
   
   return {
     'Content-Type': 'application/json',
     'Authorization': token ? `Bearer ${token}` : '',
-    'X-Phone-Number': cleanPhoneNumber // Make sure it's in the expected format
+    'X-Phone-Number': phoneNumber || '' // Add phone number to headers
   };
 };
 
@@ -83,7 +79,7 @@ export const logout = () => {
 };
 
 /**
- * Check if user is logged in
+ * Check if user is authenticated
  */
 export const isAuthenticated = () => {
   return !!getToken() && !!getPhoneNumber();
@@ -93,9 +89,9 @@ export const isAuthenticated = () => {
  * Get user health data
  * @param days - Number of days to look back (default: 7)
  */
-// In src/lib/api.ts
 export const getHealthData = async (days = 7) => {
   try {
+    // Check for phone number before making the request
     const phoneNumber = getPhoneNumber();
     if (!phoneNumber) {
       console.error('No phone number available for API request');
@@ -107,49 +103,6 @@ export const getHealthData = async (days = 7) => {
         }
       };
     }
-    
-    // Create the complete URL
-    const url = `${API_BASE_URL}/health-data?days=${days}`;
-    console.log('Making API request to:', url);
-    console.log('With headers:', getHeaders());
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: getHeaders()
-    });
-    
-    if (!response.ok) {
-      // Try to get more detailed error information
-      let errorInfo = 'Unknown error';
-      try {
-        errorInfo = await response.text();
-      } catch (e) {}
-      
-      console.error(`API Error (${response.status}):`, errorInfo);
-      
-      // Fall back to mock data
-      return {
-        success: true,
-        data: {
-          exerciseLogs: getMockExerciseLogs(),
-          foodLogs: getMockFoodLogs()
-        }
-      };
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching health data:', error);
-    // Fall back to mock data
-    return {
-      success: true,
-      data: {
-        exerciseLogs: getMockExerciseLogs(),
-        foodLogs: getMockFoodLogs()
-      }
-    };
-  }
-};
     
     // Include the phone number as a query parameter
     const url = `${API_BASE_URL}/health-data?days=${days}&phoneNumber=${encodeURIComponent(phoneNumber)}`;
@@ -220,7 +173,7 @@ export const getMessages = async () => {
   }
 };
 
-// Create a simple test function to check if the API is reachable
+// Test API connection
 export const testApiConnection = async () => {
   try {
     const response = await fetch(`${API_BASE_URL.replace('/api', '')}/`, {
@@ -245,21 +198,21 @@ function getMockExerciseLogs() {
   return [
     {
       id: 'ex1',
-      date: new Date(today.setDate(today.getDate() - 1)),
+      date: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000),
       duration: 30,
       type: 'running',
       distance: '3 miles'
     },
     {
       id: 'ex2',
-      date: new Date(today.setDate(today.getDate() - 2)),
+      date: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000),
       duration: 45,
       type: 'cycling',
       distance: '10 miles'
     },
     {
       id: 'ex3',
-      date: new Date(today.setDate(today.getDate() - 4)),
+      date: new Date(today.getTime() - 4 * 24 * 60 * 60 * 1000),
       duration: 60,
       type: 'yoga',
       distance: ''
@@ -273,17 +226,17 @@ function getMockFoodLogs() {
   return [
     {
       id: 'food1',
-      date: new Date(today.setDate(today.getDate() - 1)),
+      date: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000),
       foodItems: 'Salad with grilled chicken'
     },
     {
       id: 'food2',
-      date: new Date(today.setDate(today.getDate() - 2)),
+      date: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000),
       foodItems: 'Oatmeal with berries and honey'
     },
     {
       id: 'food3',
-      date: new Date(today.setDate(today.getDate() - 3)),
+      date: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000),
       foodItems: 'Pasta with tomato sauce'
     }
   ];
@@ -296,7 +249,7 @@ function getMockMessages() {
     {
       id: 'msg1',
       content: 'I ran for 30 minutes today',
-      timestamp: new Date(today.setDate(today.getDate() - 1)),
+      timestamp: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000),
       type: 'incoming',
       channel: 'whatsapp',
       processed: true,
@@ -312,7 +265,7 @@ function getMockMessages() {
     {
       id: 'msg2',
       content: 'Had a salad with grilled chicken for lunch',
-      timestamp: new Date(today.setDate(today.getDate() - 2)),
+      timestamp: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000),
       type: 'incoming',
       channel: 'whatsapp',
       processed: true,
@@ -326,45 +279,10 @@ function getMockMessages() {
     {
       id: 'msg3',
       content: 'status',
-      timestamp: new Date(today.setDate(today.getDate() - 3)),
+      timestamp: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000),
       type: 'incoming',
       channel: 'whatsapp',
       processed: true
     }
   ];
 }
-
-export const testBackendConnection = async () => {
-  try {
-    const phoneNumber = getPhoneNumber();
-    
-    // Try a simple GET request to the API root
-    const rootResponse = await fetch(`${API_BASE_URL.replace('/api', '')}/`);
-    console.log('API root response status:', rootResponse.status);
-    
-    // Create a test object with the phone number in multiple formats
-    const testData = {
-      phoneNumber: phoneNumber,
-      phoneNumberClean: phoneNumber ? phoneNumber.replace(/\D/g, '') : '',
-      withWhatsAppPrefix: phoneNumber ? `whatsapp:${phoneNumber}` : '',
-      timestamp: new Date().toISOString()
-    };
-    
-    // Log the test information
-    console.log('API connection test data:', testData);
-    console.log('API_BASE_URL:', API_BASE_URL);
-    console.log('Headers being sent:', getHeaders());
-    
-    return {
-      success: true,
-      message: 'Test completed - check console for details',
-      testData
-    };
-  } catch (error) {
-    console.error('Backend connection test failed:', error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-};
