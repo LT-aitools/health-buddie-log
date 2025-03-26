@@ -1,7 +1,7 @@
 // src/lib/api.ts
 
 // Base URL for API calls
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://health-tracker-new-app-7de8aa984308.herokuapp.com/api';
+const API_BASE_URL = 'https://health-tracker-new-app-7de8aa984308.herokuapp.com/api';
 
 // Helper function to get token from localStorage
 const getToken = () => localStorage.getItem('healthBuddieToken');
