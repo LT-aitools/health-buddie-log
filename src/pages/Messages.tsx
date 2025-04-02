@@ -51,38 +51,26 @@ const Messages = () => {
   };
 
   const formatMessageContent = (message: Message): ReactNode => {
-    let displayContent: ReactNode = message.content;
+    // Create the base message display
+    const messageContent = (
+      <div className="text-sm space-y-1">
+        <p>{message.content}</p>
+        {message.category === 'exercise' && message.processed_data?.exercise && (
+          <p className="text-xs opacity-70">
+            Exercise tracked: {message.processed_data.exercise.type}
+            {message.processed_data.exercise.distance ? ` (${message.processed_data.exercise.distance})` : ''}
+            {message.processed_data.exercise.duration > 0 ? ` for ${message.processed_data.exercise.duration} minutes` : ''}
+          </p>
+        )}
+        {message.category === 'food' && message.processed_data?.food && (
+          <p className="text-xs opacity-70">
+            Food tracked: {message.processed_data.food.description}
+          </p>
+        )}
+      </div>
+    );
     
-    // Add processed information below if available
-    if (message.category === 'exercise' && message.processed_data?.exercise) {
-      const { duration, type, distance } = message.processed_data.exercise;
-      let processedInfo = `Exercise tracked: ${type}`;
-      
-      if (duration > 0) {
-        processedInfo += ` for ${duration} minutes`;
-      }
-      
-      if (distance) {
-        processedInfo += ` (${distance})`;
-      }
-      
-      displayContent = (
-        <>
-          <p>{message.content}</p>
-          <p className="text-xs opacity-70 mt-1">{processedInfo}</p>
-        </>
-      );
-    } else if (message.category === 'food' && message.processed_data?.food) {
-      const { description } = message.processed_data.food;
-      displayContent = (
-        <>
-          <p>{message.content}</p>
-          <p className="text-xs opacity-70 mt-1">Food tracked: {description}</p>
-        </>
-      );
-    }
-    
-    return displayContent;
+    return messageContent;
   };
 
   const fetchMessages = async () => {
@@ -241,7 +229,9 @@ const Messages = () => {
                               {formatMessageTime(message.timestamp)}
                             </span>
                           </div>
-                          <p className="text-sm">{message.content}</p>
+                          <div className="text-sm">
+                            {message.content}
+                          </div>
                         </div>
                       </motion.div>
                     ))}
