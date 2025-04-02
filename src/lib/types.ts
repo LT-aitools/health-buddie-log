@@ -1,5 +1,7 @@
 // src/lib/types.ts
 
+import { ReactNode } from 'react';
+
 export type MessageType = 'incoming' | 'outgoing';
 export type HealthCategory = 'exercise' | 'food';
 export type MessageChannel = 'whatsapp' | 'imessage' | 'voice' | 'sms' | 'twilio-whatsapp';
@@ -25,22 +27,26 @@ export interface HealthLog {
 export interface Message {
   id: string;
   content: string;
-  timestamp: Date;
-  type: MessageType;
-  channel: MessageChannel;
-  confidence?: number;
-  processed?: boolean;
+  timestamp: string | Date;
+  createdAt?: string | Date;
+  type: 'incoming' | 'outgoing';
+  channel: string;
+  processed: boolean;
+  category?: string;
   processed_data?: {
     exercise?: {
-      duration?: number;
-      type?: string;
+      duration: number;
+      type: string;
       distance?: string;
     };
     food?: {
-      description?: string;
-    }
+      description: string;
+    };
   };
-  category?: HealthCategory;
+}
+
+export interface FormattedMessage extends Omit<Message, 'content'> {
+  content: ReactNode;
 }
 
 export interface CareTemplate {

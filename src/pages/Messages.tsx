@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, ReactNode } from "react";
 import Navbar from "@/components/layout/Navbar";
-import { Message } from "@/lib/types";
+import { Message, FormattedMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, Mic, Check } from "lucide-react";
@@ -10,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 
 const Messages = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<FormattedMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -34,6 +34,57 @@ const Messages = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const formatMessageTime = (timestamp: string | Date) => {
+    try {
+      const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+      return date.toLocaleString('en-US', { 
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      });
+    } catch (error) {
+      console.error('Error formatting timestamp:', error);
+      return 'Invalid date';
+    }
+  };
+
+  const formatMessageContent = (message: Message): ReactNode => {
+    let displayContent: ReactNode = message.content;
+    
+    // Add processed information below if available
+    if (message.category === 'exercise' && message.processed_data?.exercise) {
+      const { duration, type, distance } = message.processed_data.exercise;
+      let processedInfo = `Exercise tracked: ${type}`;
+      
+      if (duration > 0) {
+        processedInfo += ` for ${duration} minutes`;
+      }
+      
+      if (distance) {
+        processedInfo += ` (${distance})`;
+      }
+      
+      displayContent = (
+        <>
+          <p>{message.content}</p>
+          <p className="text-xs opacity-70 mt-1">{processedInfo}</p>
+        </>
+      );
+    } else if (message.category === 'food' && message.processed_data?.food) {
+      const { description } = message.processed_data.food;
+      displayContent = (
+        <>
+          <p>{message.content}</p>
+          <p className="text-xs opacity-70 mt-1">Food tracked: {description}</p>
+        </>
+      );
+    }
+    
+    return displayContent;
+  };
+
   const fetchMessages = async () => {
     console.log("Fetching messages for user:", user?.phoneNumber);
     console.log("User object:", user);
@@ -46,7 +97,16 @@ const Messages = () => {
       if (response.success) {
         console.log("Raw messages from API:", response.messages);
         if (response.messages && response.messages.length > 0) {
-          setMessages(response.messages);
+          // Sort messages by timestamp, oldest first
+          const sortedMessages = [...response.messages].sort((a, b) => {
+            const dateA = new Date(a.timestamp || a.createdAt || '');
+            const dateB = new Date(b.timestamp || b.createdAt || '');
+            return dateA.getTime() - dateB.getTime();
+          }).map(msg => ({
+            ...msg,
+            content: formatMessageContent(msg)
+          }));
+          setMessages(sortedMessages);
         } else {
           setMessages([]);
           toast({
@@ -75,44 +135,6 @@ const Messages = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatMessageTime = (timestamp: string | Date) => {
-    try {
-      const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
-      return date.toLocaleString('en-US', { 
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true 
-      });
-    } catch (error) {
-      console.error('Error formatting timestamp:', error);
-      return 'Invalid date';
-    }
-  };
-
-  const formatMessageContent = (message: Message) => {
-    if (message.category === 'exercise' && message.processed_data?.exercise) {
-      const { duration, type, distance } = message.processed_data.exercise;
-      let content = `Exercise: ${type}`;
-      
-      if (duration > 0) {
-        content += ` for ${duration} minutes`;
-      }
-      
-      if (distance) {
-        content += ` (${distance})`;
-      }
-      
-      return content;
-    } else if (message.category === 'food' && message.processed_data?.food) {
-      const { description } = message.processed_data.food;
-      return `Food: ${description}`;
-    }
-    
-    return message.content;
   };
 
   return (
@@ -219,7 +241,7 @@ const Messages = () => {
                               {formatMessageTime(message.timestamp)}
                             </span>
                           </div>
-                          <p className="text-sm">{formatMessageContent(message)}</p>
+                          <p className="text-sm">{message.content}</p>
                         </div>
                       </motion.div>
                     ))}
