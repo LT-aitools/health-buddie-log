@@ -27,16 +27,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userJson = localStorage.getItem('healthBuddieUser');
         if (userJson) {
           const userData = JSON.parse(userJson);
-          setUser({
-            id: userData.id || `user-${Date.now()}`,
-            phoneNumber: userData.phoneNumber,
-            createdAt: new Date(),
-            lastActive: new Date(),
-            verified: true
-          });
+          // Ensure phone number exists
+          if (userData.phoneNumber) {
+            setUser({
+              id: userData.id || `user-${Date.now()}`,
+              phoneNumber: userData.phoneNumber,
+              createdAt: new Date(userData.createdAt || Date.now()),
+              lastActive: new Date(userData.lastActive || Date.now()),
+              verified: true
+            });
+            console.log('User loaded from localStorage:', userData.phoneNumber);
+          } else {
+            console.error('No phone number found in stored user data');
+            // Clear invalid user data
+            localStorage.removeItem('healthBuddieUser');
+            localStorage.removeItem('healthBuddieToken');
+          }
         }
       } catch (err) {
         console.error('Error loading user data', err);
+        // Clear potentially corrupted data
+        localStorage.removeItem('healthBuddieUser');
+        localStorage.removeItem('healthBuddieToken');
       } finally {
         setIsLoading(false);
       }
@@ -45,42 +57,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loadUser();
   }, []);
 
-  // Modify the login function or context to log more details
-const login = async (phoneNumber: string) => {
-  try {
-    console.log('Attempting to log in with phone number:', phoneNumber);
-    const response = await fetch(`${API_BASE_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phoneNumber })
-    });
+  const login = async (phoneNumber: string) => {
+    setIsLoading(true);
+    setError(null);
     
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Login error response:', error);
-      throw new Error(error || 'Login failed');
+    try {
+      console.log('Logging in with phone number:', phoneNumber);
+      
+      // Call the API login function
+      const result = await apiLogin(phoneNumber);
+      
+      // Set the user in state
+      if (result.user) {
+        setUser(result.user);
+        console.log('User set in state after login:', result.user);
+      }
+      
+      return result;
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(err.message || 'Failed to log in');
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
-    
-    const data = await response.json();
-    
-    // Log token and user details
-    console.log('Login response:', data);
-    
-    // Save token and phone number
-    if (data.token) {
-      localStorage.setItem('healthBuddieToken', data.token);
-      localStorage.setItem('healthBuddieUser', JSON.stringify({
-        phoneNumber: phoneNumber, // Explicitly store phone number
-        ...data.user
-      }));
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Login error:', error);
-    throw error;
-  }
-};
+  };
 
   const logout = () => {
     apiLogout();
@@ -89,7 +90,7 @@ const login = async (phoneNumber: string) => {
 
   const value = {
     user,
-    isAuthenticated: isAuthenticated(),
+    isAuthenticated: !!user && isAuthenticated(),
     isLoading,
     login,
     logout,

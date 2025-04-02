@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 const Auth = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login, error } = useAuth();
+  const { login, error, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -20,11 +20,33 @@ const Auth = () => {
   // Get the redirect path from location state, or default to "/"
   const from = (location.state as any)?.from?.pathname || "/";
 
+  // If already authenticated, redirect to home
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(from);
+    }
+  }, [isAuthenticated, navigate, from]);
+
+  const validatePhoneNumber = (number: string): boolean => {
+    // Simple validation to ensure the number is not empty and has reasonable length
+    const cleanedNumber = number.replace(/\D/g, "");
+    return cleanedNumber.length >= 10 && cleanedNumber.length <= 15;
+  };
+
   const handleLogin = async () => {
     if (!phoneNumber) {
       toast({
         title: "Phone Number Required",
         description: "Please enter your phone number to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validatePhoneNumber(phoneNumber)) {
+      toast({
+        title: "Invalid Phone Number",
+        description: "Please enter a valid phone number with country code.",
         variant: "destructive",
       });
       return;
@@ -41,6 +63,8 @@ const Auth = () => {
         ? cleanedPhoneNumber 
         : `+${cleanedPhoneNumber}`;
       
+      console.log('Attempting login with formatted number:', formattedNumber);
+      
       await login(formattedNumber);
       
       toast({
@@ -51,6 +75,7 @@ const Auth = () => {
       // Navigate to the page they were trying to access, or to the dashboard
       navigate(from);
     } catch (err: any) {
+      console.error('Login error:', err);
       toast({
         title: "Login Failed",
         description: err.message || "There was a problem logging in. Please try again.",
@@ -65,7 +90,7 @@ const Auth = () => {
     // Strip all non-numeric characters except for leading +
     let phoneDigits = value.replace(/[^\d+]/g, "");
     
-    // If it doesn't start with +, assume it's a local number
+    // If it doesn't start with +, assume it's a local number and add +
     if (!phoneDigits.startsWith("+")) {
       phoneDigits = `+${phoneDigits}`;
     }

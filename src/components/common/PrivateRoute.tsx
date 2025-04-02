@@ -1,5 +1,5 @@
 // src/components/common/PrivateRoute.tsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
@@ -8,8 +8,27 @@ interface PrivateRouteProps {
 }
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
+
+  // Log authentication state for debugging
+  useEffect(() => {
+    console.log('PrivateRoute auth state:', { isAuthenticated, isLoading, hasUser: !!user });
+    
+    // Check if we have a stored user but the phone number is missing
+    const userJson = localStorage.getItem('healthBuddieUser');
+    if (userJson) {
+      try {
+        const userData = JSON.parse(userJson);
+        console.log('User from localStorage:', userData);
+        if (!userData.phoneNumber) {
+          console.warn('User data missing phone number!');
+        }
+      } catch (err) {
+        console.error('Error parsing user data:', err);
+      }
+    }
+  }, [isAuthenticated, isLoading, user]);
 
   if (isLoading) {
     // Show loading spinner while checking authentication
@@ -25,10 +44,12 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
 
   if (!isAuthenticated) {
     // Redirect to login page if not authenticated
+    console.log('Not authenticated, redirecting to /auth');
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
   // If authenticated, render the protected component
+  console.log('Authenticated, rendering protected component');
   return <>{children}</>;
 };
 
