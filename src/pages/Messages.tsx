@@ -9,6 +9,9 @@ import { getMessages, testApiConnection } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 
+// Add version timestamp at build time
+const BUILD_VERSION = new Date().toISOString();
+
 const Messages = () => {
   const [messages, setMessages] = useState<FormattedMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -185,11 +188,16 @@ const Messages = () => {
               <div className="mr-4 bg-primary text-white p-3 rounded-full">
                 <MessageSquare className="h-6 w-6" />
               </div>
-              <div>
+              <div className="flex-1">
                 <h1 className="text-3xl font-bold tracking-tight">Messages</h1>
-                <p className="text-muted-foreground">
-                  View your WhatsApp health tracking message history
-                </p>
+                <div className="flex justify-between items-center">
+                  <p className="text-muted-foreground">
+                    View your WhatsApp health tracking message history
+                  </p>
+                  <span className="text-xs text-muted-foreground">
+                    v{new Date(BUILD_VERSION).toLocaleString()}
+                  </span>
+                </div>
               </div>
             </div>
 
