@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/layout/Navbar";
-import MessageInput from "@/components/Messages/MessageInput";
 import { Message } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -76,13 +75,6 @@ const Messages = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSendMessage = (content: string, channel: string) => {
-    toast({
-      title: "Message Sent",
-      description: "Please send your actual message via WhatsApp for tracking.",
-    });
   };
 
   const formatMessageTime = (timestamp: string | Date) => {
@@ -171,7 +163,7 @@ const Messages = () => {
               </div>
             </div>
 
-            <div className="glass-card rounded-2xl mb-6 overflow-hidden">
+            <div className="glass-card rounded-2xl overflow-hidden">
               <div className="border-b border-border p-4 flex items-center justify-between">
                 <div className="flex items-center">
                   <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
@@ -235,10 +227,6 @@ const Messages = () => {
                 )}
                 <div ref={messagesEndRef} />
               </div>
-            </div>
-
-            <div className="glass-card rounded-2xl p-6">
-              <MessageInput onSendMessage={handleSendMessage} />
             </div>
           </div>
         )}
