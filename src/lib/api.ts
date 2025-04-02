@@ -221,8 +221,9 @@ export const getMessages = async (): Promise<{ success: boolean; messages?: Mess
 // Test API connection
 export const testApiConnection = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/health`, {
-      method: 'GET'
+    const response = await fetch(`${API_BASE_URL}/messages`, {
+      method: 'GET',
+      headers: getHeaders()
     });
     
     if (!response.ok) {
