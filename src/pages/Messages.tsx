@@ -6,18 +6,29 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, Mic, Check } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { getMessages } from "@/lib/api";
+import { getMessages, testApiConnection } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
 
 const Messages = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
   useEffect(() => {
-    fetchMessages();
+    // Test API connection first
+    testApiConnection().then(result => {
+      console.log("API connection test result:", result);
+      if (result.success) {
+        fetchMessages();
+      } else {
+        setError("Cannot connect to the API server. Please try again later.");
+        setLoading(false);
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -25,23 +36,38 @@ const Messages = () => {
   }, [messages]);
 
   const fetchMessages = async () => {
-    console.log("Fetching messages123");
+    console.log("Fetching messages for user:", user?.phoneNumber);
+    console.log("User object:", user);
     setLoading(true);
+    setError(null);
     try {
       const response = await getMessages();
+      console.log("Messages API response:", response);
+      
       if (response.success) {
-        // Add system responses to the messages
-        const messagesWithResponses = addSystemResponses(response.messages);
-        setMessages(messagesWithResponses);
+        console.log("Raw messages from API:", response.messages);
+        if (response.messages && response.messages.length > 0) {
+          setMessages(response.messages);
+        } else {
+          setMessages([]);
+          toast({
+            title: "No Messages",
+            description: "You don't have any messages yet. Send a message via WhatsApp to start tracking your health.",
+            variant: "default",
+          });
+        }
       } else {
+        console.error("Error in messages response:", response.error);
+        setError(response.error || "Failed to fetch messages");
         toast({
           title: "Error",
-          description: "Failed to fetch messages",
+          description: response.error || "Failed to fetch messages",
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error("Error fetching messages:", error);
+      setError("Failed to connect to the server");
       toast({
         title: "Error",
         description: "Failed to connect to the server",
@@ -49,62 +75,6 @@ const Messages = () => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Helper function to add system responses based on incoming messages
-  const addSystemResponses = (incomingMessages: Message[]) => {
-    const messagesWithResponses: Message[] = [];
-    
-    incomingMessages.forEach((message) => {
-      // Add the original message
-      messagesWithResponses.push(message);
-      
-      // Generate a response message
-      const responseMessage: Message = {
-        id: `response-${message.id}`,
-        content: generateResponseContent(message),
-        timestamp: new Date(new Date(message.timestamp).getTime() + 60000), // 1 minute after original
-        type: "outgoing",
-        channel: message.channel,
-      };
-      
-      messagesWithResponses.push(responseMessage);
-    });
-    
-    // Sort by timestamp, newest first
-    return messagesWithResponses.sort((a, b) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-  };
-
-  // Helper function to generate response content based on message
-  const generateResponseContent = (message: Message) => {
-    if (message.category === 'exercise') {
-      const duration = message.processed_data?.exercise?.duration;
-      const type = message.processed_data?.exercise?.type;
-      
-      if (duration && type) {
-        return `Your ${duration}-minute ${type} session has been logged. Great job!`;
-      } else if (duration) {
-        return `Your ${duration}-minute workout has been logged. Keep it up!`;
-      } else if (type) {
-        return `Your ${type} session has been logged. Way to go!`;
-      } else {
-        return `Your exercise has been logged. Keep up the good work!`;
-      }
-    } else if (message.category === 'food') {
-      const description = message.processed_data?.food?.description;
-      
-      if (description) {
-        return `Your meal "${description}" has been logged. Nutritious choice!`;
-      } else {
-        return `Your food intake has been recorded. Thanks for keeping track!`;
-      }
-    } else if (message.content.toLowerCase().includes('status')) {
-      return `Generating your weekly health report. Check the Reports tab for details.`;
-    } else {
-      return `Your health update has been recorded. Thanks!`;
     }
   };
 
@@ -119,6 +89,28 @@ const Messages = () => {
     return new Date(date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
+  const formatMessageContent = (message: Message) => {
+    if (message.category === 'exercise' && message.processed_data?.exercise) {
+      const { duration, type, distance } = message.processed_data.exercise;
+      let content = `Exercise: ${type}`;
+      
+      if (duration > 0) {
+        content += ` for ${duration} minutes`;
+      }
+      
+      if (distance) {
+        content += ` (${distance})`;
+      }
+      
+      return content;
+    } else if (message.category === 'food' && message.processed_data?.food) {
+      const { description } = message.processed_data.food;
+      return `Food: ${description}`;
+    }
+    
+    return message.content;
+  };
+
   return (
     <div className="min-h-screen bg-background pt-6 pb-24 md:pb-6 md:pt-24">
       <div className="container px-4 md:px-6">
@@ -127,6 +119,30 @@ const Messages = () => {
             <div className="relative h-16 w-16">
               <div className="absolute top-0 left-0 h-full w-full rounded-full border-4 border-gray-200"></div>
               <div className="absolute top-0 left-0 h-full w-full rounded-full border-4 border-t-transparent border-primary animate-spin"></div>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center mb-8">
+              <div className="mr-4 bg-destructive text-destructive-foreground p-3 rounded-full">
+                <MessageSquare className="h-6 w-6" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Messages</h1>
+                <p className="text-muted-foreground">
+                  {error}
+                </p>
+              </div>
+            </div>
+            <div className="glass-card rounded-2xl p-6 text-center">
+              <p className="text-muted-foreground mb-4">
+                {error === "No phone number available. Please log in again." 
+                  ? "Please log out and log in again to fix this issue."
+                  : "Please try again later or contact support if the issue persists."}
+              </p>
+              <Button onClick={fetchMessages} variant="outline">
+                Try Again
+              </Button>
             </div>
           </div>
         ) : (
@@ -199,7 +215,7 @@ const Messages = () => {
                               {formatMessageTime(message.timestamp)}
                             </span>
                           </div>
-                          <p className="text-sm">{message.content}</p>
+                          <p className="text-sm">{formatMessageContent(message)}</p>
                         </div>
                       </motion.div>
                     ))}

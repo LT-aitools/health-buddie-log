@@ -1,5 +1,7 @@
 // src/lib/api.ts
 
+import { Message } from './types';
+
 // Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
@@ -136,39 +138,82 @@ export const getHealthData = async (days = 7) => {
 /**
  * Get recent messages
  */
-export const getMessages = async () => {
-  try {
-    const phoneNumber = getPhoneNumber();
-    if (!phoneNumber) {
-      console.error('No phone number available for messages request');
-      return {
-        success: true,
-        messages: getMockMessages()
-      };
+export const getMessages = async (): Promise<{ success: boolean; messages?: Message[]; error?: string }> => {
+  const userJson = localStorage.getItem('healthBuddieUser');
+  let phoneNumber = null;
+  
+  if (userJson) {
+    try {
+      const userData = JSON.parse(userJson);
+      phoneNumber = userData.phoneNumber;
+    } catch (error) {
+      console.error('Error parsing user data:', error);
     }
-    
-    // Include the phone number as a query parameter
+  }
+  
+  console.log('Getting messages for phone number:', phoneNumber);
+  
+  if (!phoneNumber) {
+    console.error('No phone number found in localStorage');
+    return { 
+      success: false, 
+      error: "No phone number available. Please log in again." 
+    };
+  }
+
+  try {
     const url = `${API_BASE_URL}/messages?phoneNumber=${encodeURIComponent(phoneNumber)}`;
-    console.log('Making messages request to:', url);
+    console.log('Making request to:', url);
+    console.log('With headers:', getHeaders());
     
     const response = await fetch(url, {
       method: 'GET',
-      headers: getHeaders()
+      headers: getHeaders(),
     });
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Messages API Error:', errorText);
-      throw new Error(errorText || 'Failed to get messages');
-    }
+    console.log('Response status:', response.status);
     
-    return await response.json();
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('API error:', errorData);
+      return { 
+        success: false, 
+        error: errorData.error || `Failed to fetch messages: ${response.status}` 
+      };
+    }
+
+    const data = await response.json();
+    console.log('API response data:', data);
+    
+    if (!data.messages || !Array.isArray(data.messages)) {
+      console.error('Invalid response format:', data);
+      return { 
+        success: false, 
+        error: "Invalid response format from server" 
+      };
+    }
+
+    // Format the messages to match the expected structure
+    const formattedMessages = data.messages.map((msg: any) => ({
+      id: msg.id || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      content: msg.content || '',
+      timestamp: new Date(msg.timestamp || Date.now()),
+      type: msg.type || 'incoming',
+      channel: msg.channel || 'whatsapp',
+      processed: msg.processed || false,
+      category: msg.category || '',
+      processed_data: msg.processed_data || {}
+    }));
+
+    return { 
+      success: true, 
+      messages: formattedMessages 
+    };
   } catch (error) {
     console.error('Error fetching messages:', error);
-    // Fall back to mock data
-    return {
-      success: true,
-      messages: getMockMessages()
+    return { 
+      success: false, 
+      error: "Failed to connect to the server" 
     };
   }
 };
@@ -176,7 +221,7 @@ export const getMessages = async () => {
 // Test API connection
 export const testApiConnection = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL.replace('/api', '')}/`, {
+    const response = await fetch(`${API_BASE_URL}/health`, {
       method: 'GET'
     });
     
