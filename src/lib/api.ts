@@ -29,11 +29,20 @@ const getHeaders = () => {
   
   console.log('Creating headers with phone number:', phoneNumber);
   
-  return {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
-    'X-Phone-Number': phoneNumber || '' // Add phone number to headers
   };
+
+  if (phoneNumber) {
+    headers['X-Phone-Number'] = phoneNumber;
+  }
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  console.log('Final headers:', headers);
+  return headers;
 };
 
 /**
@@ -221,13 +230,27 @@ export const getMessages = async (): Promise<{ success: boolean; messages?: Mess
 // Test API connection
 export const testApiConnection = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/messages`, {
+    const phoneNumber = getPhoneNumber();
+    if (!phoneNumber) {
+      console.error('No phone number available for API test');
+      return { 
+        success: false, 
+        error: new Error('No phone number available. Please log in again.') 
+      };
+    }
+
+    const headers = getHeaders();
+    console.log('Testing API connection with headers:', headers);
+
+    const response = await fetch(`${API_BASE_URL}/messages?phoneNumber=${encodeURIComponent(phoneNumber)}`, {
       method: 'GET',
-      headers: getHeaders()
+      headers: headers
     });
     
     if (!response.ok) {
-      throw new Error('API is not reachable');
+      const errorData = await response.json().catch(() => ({ error: `HTTP error! status: ${response.status}` }));
+      console.error('API test failed:', errorData);
+      throw new Error(errorData.error || 'API is not reachable');
     }
     
     return { success: true, message: 'API is reachable' };
