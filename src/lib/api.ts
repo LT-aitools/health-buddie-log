@@ -202,18 +202,19 @@ export const getMessages = async (): Promise<{ success: boolean; messages?: Mess
       };
     }
 
-    // Format the messages to match the expected structure
+    // Format the messages while preserving original data
     const formattedMessages = data.messages.map((msg: any) => ({
-      id: msg.id || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      content: msg.content || '',
-      timestamp: new Date(msg.timestamp || Date.now()),
+      ...msg, // Keep all original fields
+      id: msg.id, // Use original ID
+      timestamp: msg.createdAt || msg.timestamp, // Try createdAt first, then timestamp
       type: msg.type || 'incoming',
       channel: msg.channel || 'whatsapp',
-      processed: msg.processed || false,
+      processed: typeof msg.processed === 'boolean' ? msg.processed : true,
       category: msg.category || '',
       processed_data: msg.processed_data || {}
     }));
 
+    console.log('Formatted messages:', formattedMessages);
     return { 
       success: true, 
       messages: formattedMessages 

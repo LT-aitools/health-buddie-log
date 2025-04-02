@@ -85,8 +85,20 @@ const Messages = () => {
     });
   };
 
-  const formatMessageTime = (date: Date) => {
-    return new Date(date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const formatMessageTime = (timestamp: string | Date) => {
+    try {
+      const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+      return date.toLocaleString('en-US', { 
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      });
+    } catch (error) {
+      console.error('Error formatting timestamp:', error);
+      return 'Invalid date';
+    }
   };
 
   const formatMessageContent = (message: Message) => {
