@@ -83,8 +83,19 @@ const Messages = () => {
       console.log("Messages API response:", response);
       
       if (response.success) {
-        console.log("Raw messages from API:", response.messages);
+        console.log("Raw messages from API:", JSON.stringify(response.messages, null, 2));
         if (response.messages && response.messages.length > 0) {
+          // Log each message's content before processing
+          response.messages.forEach((msg, index) => {
+            console.log(`Message ${index + 1}:`, {
+              original_content: msg.content,
+              category: msg.category,
+              processed_data: msg.processed_data,
+              timestamp: msg.timestamp,
+              type: msg.type
+            });
+          });
+
           // Sort messages by timestamp, oldest first
           const sortedMessages = [...response.messages].sort((a, b) => {
             const dateA = new Date(a.timestamp || a.createdAt || '');
@@ -94,6 +105,15 @@ const Messages = () => {
             ...msg,
             content: formatMessageContent(msg)
           }));
+
+          // Log the formatted messages
+          console.log("Formatted messages:", sortedMessages.map(msg => ({
+            id: msg.id,
+            content: 'ReactNode', // Can't stringify React nodes
+            timestamp: msg.timestamp,
+            type: msg.type
+          })));
+
           setMessages(sortedMessages);
         } else {
           setMessages([]);

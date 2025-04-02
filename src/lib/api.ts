@@ -192,7 +192,7 @@ export const getMessages = async (): Promise<{ success: boolean; messages?: Mess
     }
 
     const data = await response.json();
-    console.log('API response data:', data);
+    console.log('Raw API response:', JSON.stringify(data, null, 2));
     
     if (!data.messages || !Array.isArray(data.messages)) {
       console.error('Invalid response format:', data);
@@ -202,22 +202,21 @@ export const getMessages = async (): Promise<{ success: boolean; messages?: Mess
       };
     }
 
-    // Format the messages while preserving original data
-    const formattedMessages = data.messages.map((msg: any) => ({
+    // Keep the original message data, just ensure required fields are present
+    const messages = data.messages.map((msg: any) => ({
       ...msg, // Keep all original fields
-      id: msg.id, // Use original ID
-      timestamp: msg.createdAt || msg.timestamp, // Try createdAt first, then timestamp
+      id: msg.id || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      content: msg.content || msg.Body || '', // Try both content and Body fields
+      timestamp: msg.timestamp || msg.createdAt || new Date().toISOString(),
       type: msg.type || 'incoming',
       channel: msg.channel || 'whatsapp',
-      processed: typeof msg.processed === 'boolean' ? msg.processed : true,
-      category: msg.category || '',
-      processed_data: msg.processed_data || {}
+      processed: typeof msg.processed === 'boolean' ? msg.processed : true
     }));
 
-    console.log('Formatted messages:', formattedMessages);
+    console.log('Processed messages:', JSON.stringify(messages, null, 2));
     return { 
       success: true, 
-      messages: formattedMessages 
+      messages 
     };
   } catch (error) {
     console.error('Error fetching messages:', error);
