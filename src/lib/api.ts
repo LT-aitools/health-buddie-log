@@ -203,15 +203,33 @@ export const getMessages = async (): Promise<{ success: boolean; messages?: Mess
     }
 
     // Keep the original message data, just ensure required fields are present
-    const messages = data.messages.map((msg: any) => ({
-      ...msg, // Keep all original fields
-      id: msg.id || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      content: msg.content || msg.Body || '', // Try both content and Body fields
-      timestamp: msg.timestamp || msg.createdAt || new Date().toISOString(),
-      type: msg.type || 'incoming',
-      channel: msg.channel || 'whatsapp',
-      processed: typeof msg.processed === 'boolean' ? msg.processed : true
-    }));
+    const messages = data.messages.map((msg: any) => {
+      // Log all possible message content fields
+      console.log('Message raw data:', {
+        id: msg.id,
+        content: msg.content,
+        Body: msg.Body,
+        body: msg.body,
+        originalContent: msg.originalContent,
+        rawContent: msg.rawContent,
+        message: msg.message,
+        text: msg.text,
+        processed_data: msg.processed_data
+      });
+
+      return {
+        ...msg, // Keep all original fields
+        id: msg.id || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        // Try all possible content fields
+        content: msg.originalContent || msg.Body || msg.body || msg.content || msg.message || msg.text || '',
+        timestamp: msg.timestamp || msg.createdAt || new Date().toISOString(),
+        type: msg.type || 'incoming',
+        channel: msg.channel || 'whatsapp',
+        processed: typeof msg.processed === 'boolean' ? msg.processed : true,
+        category: msg.category || '',
+        processed_data: msg.processed_data || {}
+      };
+    });
 
     console.log('Processed messages:', JSON.stringify(messages, null, 2));
     return { 
