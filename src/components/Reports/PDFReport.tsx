@@ -1,9 +1,11 @@
-
 import { PDFReportOptions, HealthLog } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { FileText, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import GlassCard from "@/components/ui-custom/GlassCard";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { useRef } from 'react';
 
 interface PDFReportProps {
   logs: HealthLog[];
@@ -12,6 +14,40 @@ interface PDFReportProps {
 }
 
 const PDFReport: React.FC<PDFReportProps> = ({ logs, options, onDownload }) => {
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  const generatePDF = async () => {
+    if (!reportRef.current) return;
+
+    try {
+      // Call the onDownload to show loading state
+      onDownload();
+
+      // Create canvas from the report div
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+
+      // Calculate dimensions
+      const imgWidth = 210; // A4 width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/png');
+
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+
+      // Download PDF
+      pdf.save('health-report.pdf');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    }
+  };
+
   // Format date range for display
   const formatDateRange = (start: Date, end: Date) => {
     const options: Intl.DateTimeFormatOptions = { 
@@ -50,7 +86,7 @@ const PDFReport: React.FC<PDFReportProps> = ({ logs, options, onDownload }) => {
             <h2 className="text-2xl font-medium">Health Report</h2>
           </div>
           <Button 
-            onClick={onDownload}
+            onClick={generatePDF}
             className="rounded-full"
           >
             <Download className="h-4 w-4 mr-2" />
@@ -58,7 +94,7 @@ const PDFReport: React.FC<PDFReportProps> = ({ logs, options, onDownload }) => {
           </Button>
         </div>
         
-        <div className="mt-6 space-y-8">
+        <div ref={reportRef} className="mt-6 space-y-8 bg-white p-8 rounded-lg">
           <div>
             <h3 className="text-xl font-medium border-b pb-2">Weekly Summary</h3>
             <p className="text-sm text-muted-foreground mt-2">
@@ -146,7 +182,7 @@ const PDFReport: React.FC<PDFReportProps> = ({ logs, options, onDownload }) => {
                         )}
                         {log.processed.exercise.distance && (
                           <span className="bg-secondary/50 px-2 py-1 rounded text-xs">
-                            {log.processed.exercise.distance} miles
+                            {log.processed.exercise.distance}
                           </span>
                         )}
                       </div>
