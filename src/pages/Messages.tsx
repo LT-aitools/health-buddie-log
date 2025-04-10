@@ -59,7 +59,7 @@ const Messages = () => {
   const formatMessageContent = (message: Message): ReactNode => {
     return (
       <div className="text-sm">
-        <p>{message.content}</p>
+        <p>{message.originalContent || message.content}</p>
       </div>
     );
   };
