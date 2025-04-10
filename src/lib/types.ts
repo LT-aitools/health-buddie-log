@@ -27,6 +27,7 @@ export interface HealthLog {
 export interface Message {
   id: string;
   content: string;
+  originalContent?: string;
   timestamp: string | Date;
   createdAt?: string | Date;
   type: 'incoming' | 'outgoing';
