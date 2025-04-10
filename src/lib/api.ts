@@ -2,12 +2,6 @@
 
 import { Message } from './types';
 
-type ApiResponse<T> = {
-  success: boolean;
-  data?: T;
-  error?: string;
-};
-
 // Base URL for API calls
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
@@ -153,35 +147,101 @@ export const getHealthData = async (days = 7) => {
 /**
  * Get recent messages
  */
-export const getMessages = async (): Promise<ApiResponse<Message[]>> => {
-  try {
-    const phoneNumber = getPhoneNumber();
-    if (!phoneNumber) {
-      console.error('No phone number found in localStorage');
-      return { success: false, error: 'No phone number found. Please log in again.' };
+export const getMessages = async (): Promise<{ success: boolean; messages?: Message[]; error?: string }> => {
+  const userJson = localStorage.getItem('healthBuddieUser');
+  let phoneNumber = null;
+  
+  if (userJson) {
+    try {
+      const userData = JSON.parse(userJson);
+      phoneNumber = userData.phoneNumber;
+    } catch (error) {
+      console.error('Error parsing user data:', error);
     }
+  }
+  
+  console.log('Getting messages for phone number:', phoneNumber);
+  
+  if (!phoneNumber) {
+    console.error('No phone number found in localStorage');
+    return { 
+      success: false, 
+      error: "No phone number available. Please log in again." 
+    };
+  }
 
-    console.log('Fetching messages for phone number:', phoneNumber);
-    const response = await fetch(`${API_BASE_URL}/messages?phoneNumber=${encodeURIComponent(phoneNumber)}`, {
+  try {
+    const url = `${API_BASE_URL}/messages?phoneNumber=${encodeURIComponent(phoneNumber)}`;
+    console.log('Making request to:', url);
+    console.log('With headers:', getHeaders());
+    
+    const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(getToken() ? { 'Authorization': `Bearer ${getToken()}` } : {})
-      }
+      headers: getHeaders(),
     });
-
+    
+    console.log('Response status:', response.status);
+    
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Error getting messages:', errorData);
-      return { success: false, error: errorData.error || 'Failed to get messages' };
+      console.error('API error:', errorData);
+      return { 
+        success: false, 
+        error: errorData.error || `Failed to fetch messages: ${response.status}` 
+      };
     }
 
     const data = await response.json();
-    console.log('Received messages:', data);
-    return { success: true, data: data.messages || [] };
+    console.log('Raw API response:', JSON.stringify(data, null, 2));
+    
+    if (!data.messages || !Array.isArray(data.messages)) {
+      console.error('Invalid response format:', data);
+      return { 
+        success: false, 
+        error: "Invalid response format from server" 
+      };
+    }
+
+    // Keep the original message data, just ensure required fields are present
+    const messages = data.messages.map((msg: any) => {
+      // Log all possible message content fields
+      console.log('Message raw data:', {
+        id: msg.id,
+        content: msg.content,
+        Body: msg.Body,
+        body: msg.body,
+        originalContent: msg.originalContent,
+        rawContent: msg.rawContent,
+        message: msg.message,
+        text: msg.text,
+        processed_data: msg.processed_data
+      });
+
+      return {
+        ...msg, // Keep all original fields
+        id: msg.id || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        // Try all possible content fields
+        content: msg.originalContent || msg.Body || msg.body || msg.content || msg.message || msg.text || '',
+        timestamp: msg.timestamp || msg.createdAt || new Date().toISOString(),
+        type: msg.type || 'incoming',
+        channel: msg.channel || 'whatsapp',
+        processed: typeof msg.processed === 'boolean' ? msg.processed : true,
+        category: msg.category || '',
+        processed_data: msg.processed_data || {}
+      };
+    });
+
+    console.log('Processed messages:', JSON.stringify(messages, null, 2));
+    return { 
+      success: true, 
+      messages 
+    };
   } catch (error) {
-    console.error('Error getting messages:', error);
-    return { success: false, error: 'Failed to get messages' };
+    console.error('Error fetching messages:', error);
+    return { 
+      success: false, 
+      error: "Failed to connect to the server" 
+    };
   }
 };
 

@@ -129,8 +129,9 @@ export function generateResponse(healthLog: HealthLog | null, isStatusRequest: b
     return "I'm not sure I understood that. Could you please clarify if you're logging exercise or food?";
   }
   
-  if (healthLog.confidence < 0.85) {
-    return "I'm not entirely sure I understood that correctly. Could you please rephrase or provide more details?";
+  if (healthLog.confidence < 0.75) {
+    console.warn(`Low confidence (${healthLog.confidence}) for message: ${healthLog.rawMessage}`);
+    // You might want to handle low confidence cases differently
   }
   
   if (healthLog.category === 'exercise') {
