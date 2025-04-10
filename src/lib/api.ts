@@ -155,17 +155,18 @@ export const getHealthData = async (days = 7) => {
  */
 export const getMessages = async (): Promise<ApiResponse<Message[]>> => {
   try {
-    const phoneNumber = localStorage.getItem('phoneNumber');
+    const phoneNumber = getPhoneNumber();
     if (!phoneNumber) {
       console.error('No phone number found in localStorage');
-      return { success: false, error: 'No phone number found' };
+      return { success: false, error: 'No phone number found. Please log in again.' };
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/messages?phoneNumber=${encodeURIComponent(phoneNumber)}`, {
+    console.log('Fetching messages for phone number:', phoneNumber);
+    const response = await fetch(`${API_BASE_URL}/messages?phoneNumber=${encodeURIComponent(phoneNumber)}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        ...(localStorage.getItem('token') ? { 'Authorization': `Bearer ${localStorage.getItem('token')}` } : {})
+        ...(getToken() ? { 'Authorization': `Bearer ${getToken()}` } : {})
       }
     });
 
@@ -176,7 +177,8 @@ export const getMessages = async (): Promise<ApiResponse<Message[]>> => {
     }
 
     const data = await response.json();
-    return { success: true, data: data.messages };
+    console.log('Received messages:', data);
+    return { success: true, data: data.messages || [] };
   } catch (error) {
     console.error('Error getting messages:', error);
     return { success: false, error: 'Failed to get messages' };
