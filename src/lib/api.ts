@@ -220,8 +220,8 @@ export const getMessages = async (): Promise<{ success: boolean; messages?: Mess
       return {
         ...msg, // Keep all original fields
         id: msg.id || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        // Try all possible content fields
-        content: msg.originalContent || msg.Body || msg.body || msg.content || msg.message || msg.text || '',
+        // Prioritize raw message content
+        content: msg.rawContent || msg.originalContent || msg.Body || msg.body || msg.content || msg.message || msg.text || '',
         timestamp: msg.timestamp || msg.createdAt || new Date().toISOString(),
         type: msg.type || 'incoming',
         channel: msg.channel || 'whatsapp',
