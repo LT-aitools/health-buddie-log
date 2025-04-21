@@ -11,6 +11,7 @@ import { getHealthData } from "@/lib/api";
 const Reports = () => {
   const [loading, setLoading] = useState(true);
   const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [pdfGenerated, setPdfGenerated] = useState(false);
   const [healthLogs, setHealthLogs] = useState<HealthLog[]>([]);
   const { toast } = useToast();
 
@@ -24,6 +25,11 @@ const Reports = () => {
     endDate,
     includeRawMessages: true,
   });
+
+  // Reset PDF generated state when dates change
+  useEffect(() => {
+    setPdfGenerated(false);
+  }, [reportOptions.startDate, reportOptions.endDate]);
 
   // Fetch data on component mount
   useEffect(() => {
@@ -103,16 +109,17 @@ const Reports = () => {
     }
   };
 
-  const handleDownloadPDF = () => {
+  const handleGeneratePDF = () => {
     setGeneratingPDF(true);
     
     // Simulate PDF generation
     setTimeout(() => {
       setGeneratingPDF(false);
+      setPdfGenerated(true);
       
       toast({
         title: "PDF Generated",
-        description: "Your health report has been downloaded.",
+        description: "Your health report has been generated.",
         variant: "default",
       });
     }, 2000);
@@ -193,11 +200,11 @@ const Reports = () => {
                     
                     <div className="sm:self-end">
                       <Button 
-                        variant="default" 
+                        variant={pdfGenerated ? "secondary" : "default"}
                         size="default"
                         className="w-full sm:w-auto"
                         disabled={generatingPDF}
-                        onClick={handleDownloadPDF}
+                        onClick={handleGeneratePDF}
                       >
                         {generatingPDF ? (
                           <>
@@ -206,7 +213,6 @@ const Reports = () => {
                           </>
                         ) : (
                           <>
-                            <Download className="mr-2 h-4 w-4" />
                             Generate PDF
                           </>
                         )}
@@ -220,7 +226,7 @@ const Reports = () => {
                 <PDFReport 
                   logs={healthLogs}
                   options={reportOptions}
-                  onDownload={handleDownloadPDF}
+                  onDownload={handleGeneratePDF}
                 />
               ) : (
                 <div className="glass-card rounded-2xl p-8 text-center">
