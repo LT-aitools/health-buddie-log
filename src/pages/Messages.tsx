@@ -57,37 +57,19 @@ const Messages = () => {
   };
 
   const formatMessageContent = (message: Message): ReactNode => {
-    if (message.category === 'exercise' && message.processed_data?.exercise) {
-      const { duration, type, distance } = message.processed_data.exercise;
-      let content = `I went for a ${type}`;
-      
-      if (distance) {
-        content += ` (${distance})`;
-      }
-      
-      if (duration > 0) {
-        content += ` for ${duration} minutes`;
-      }
-      
-      return (
-        <div className="text-sm space-y-1">
-          <p>{content}</p>
-          <p className="text-xs opacity-70">✓ Exercise tracked</p>
-        </div>
-      );
-    } else if (message.category === 'food' && message.processed_data?.food) {
-      const { description } = message.processed_data.food;
-      return (
-        <div className="text-sm space-y-1">
-          <p>I had {description}</p>
-          <p className="text-xs opacity-70">✓ Food tracked</p>
-        </div>
-      );
-    }
-    
     return (
-      <div className="text-sm">
-        <p>{message.content}</p>
+      <div className="text-sm space-y-1">
+        <p>{message.originalContent || message.content}</p>
+        {message.category === 'exercise' && message.processed_data?.exercise && (
+          <p className="text-xs opacity-70">
+            ✓ Exercise tracked: {message.processed_data.exercise.type}
+            {message.processed_data.exercise.distance ? ` (${message.processed_data.exercise.distance})` : ''}
+            {message.processed_data.exercise.duration > 0 ? ` for ${message.processed_data.exercise.duration} minutes` : ''}
+          </p>
+        )}
+        {message.category === 'food' && message.processed_data?.food && (
+          <p className="text-xs opacity-70">✓ Food tracked</p>
+        )}
       </div>
     );
   };
