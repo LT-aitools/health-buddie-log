@@ -167,18 +167,11 @@ const Reports = () => {
                           type="date" 
                           value={reportOptions.startDate.toISOString().split('T')[0]}
                           onChange={(e) => {
-                            try {
-                              if (!e.target.value) return;
-                              const newDate = new Date(e.target.value + 'T00:00:00');
-                              if (!isNaN(newDate.getTime())) {
-                                setReportOptions(prev => ({
-                                  ...prev,
-                                  startDate: newDate
-                                }));
-                              }
-                            } catch (error) {
-                              console.error('Invalid date:', error);
-                            }
+                            const newDate = new Date(e.target.value);
+                            setReportOptions(prev => ({
+                              ...prev,
+                              startDate: newDate
+                            }));
                           }}
                           className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         />
@@ -193,18 +186,11 @@ const Reports = () => {
                           type="date" 
                           value={reportOptions.endDate.toISOString().split('T')[0]}
                           onChange={(e) => {
-                            try {
-                              if (!e.target.value) return;
-                              const newDate = new Date(e.target.value + 'T00:00:00');
-                              if (!isNaN(newDate.getTime())) {
-                                setReportOptions(prev => ({
-                                  ...prev,
-                                  endDate: newDate
-                                }));
-                              }
-                            } catch (error) {
-                              console.error('Invalid date:', error);
-                            }
+                            const newDate = new Date(e.target.value);
+                            setReportOptions(prev => ({
+                              ...prev,
+                              endDate: newDate
+                            }));
                           }}
                           className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         />
