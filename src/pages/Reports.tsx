@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/layout/Navbar";
 import { motion } from "framer-motion";
 import { FileText, Calendar, Download, Loader2 } from "lucide-react";
@@ -25,6 +25,9 @@ const Reports = () => {
     endDate,
     includeRawMessages: true,
   });
+
+  const startDateRef = useRef(null);
+  const endDateRef = useRef(null);
 
   // Reset PDF generated state when dates change
   useEffect(() => {
@@ -164,6 +167,7 @@ const Reports = () => {
                       <label className="text-sm font-medium mb-1 block">Start Date</label>
                       <div className="relative">
                         <input 
+                          ref={startDateRef}
                           type="date" 
                           value={reportOptions.startDate.toISOString().split('T')[0]}
                           onChange={(e) => {
@@ -175,7 +179,16 @@ const Reports = () => {
                           }}
                           className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         />
-                        <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <button
+                          type="button"
+                          onClick={() => startDateRef.current && startDateRef.current.focus()}
+                          className="absolute right-3 top-2.5"
+                          tabIndex={-1}
+                          aria-label="Pick start date"
+                          style={{ background: 'none', border: 'none', padding: 0 }}
+                        >
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                        </button>
                       </div>
                     </div>
                     
@@ -183,6 +196,7 @@ const Reports = () => {
                       <label className="text-sm font-medium mb-1 block">End Date</label>
                       <div className="relative">
                         <input 
+                          ref={endDateRef}
                           type="date" 
                           value={reportOptions.endDate.toISOString().split('T')[0]}
                           onChange={(e) => {
@@ -194,7 +208,16 @@ const Reports = () => {
                           }}
                           className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         />
-                        <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <button
+                          type="button"
+                          onClick={() => endDateRef.current && endDateRef.current.focus()}
+                          className="absolute right-3 top-2.5"
+                          tabIndex={-1}
+                          aria-label="Pick end date"
+                          style={{ background: 'none', border: 'none', padding: 0 }}
+                        >
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                        </button>
                       </div>
                     </div>
                     
