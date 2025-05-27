@@ -187,7 +187,7 @@ const Reports = () => {
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                         </button>
                         {showStartCalendar && (
-                          <div className="absolute z-10 mt-2 bg-white border rounded shadow-lg">
+                          <div className="absolute z-50 mt-2 bg-white border rounded shadow-lg">
                             <CalendarPicker
                               mode="single"
                               selected={reportOptions.startDate}
@@ -225,7 +225,7 @@ const Reports = () => {
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                         </button>
                         {showEndCalendar && (
-                          <div className="absolute z-10 mt-2 bg-white border rounded shadow-lg">
+                          <div className="absolute z-50 mt-2 bg-white border rounded shadow-lg">
                             <CalendarPicker
                               mode="single"
                               selected={reportOptions.endDate}
