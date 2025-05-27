@@ -7,6 +7,7 @@ import PDFReport from "@/components/Reports/PDFReport";
 import { PDFReportOptions, HealthLog } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { getHealthData } from "@/lib/api";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 
 const Reports = () => {
   const [loading, setLoading] = useState(true);
@@ -28,6 +29,8 @@ const Reports = () => {
 
   const startDateRef = useRef(null);
   const endDateRef = useRef(null);
+  const [showStartCalendar, setShowStartCalendar] = useState(false);
+  const [showEndCalendar, setShowEndCalendar] = useState(false);
 
   // Reset PDF generated state when dates change
   useEffect(() => {
@@ -166,22 +169,16 @@ const Reports = () => {
                     <div className="flex-1">
                       <label className="text-sm font-medium mb-1 block">Start Date</label>
                       <div className="relative">
-                        <input 
-                          ref={startDateRef}
-                          type="date" 
+                        <input
+                          readOnly
+                          type="text"
                           value={reportOptions.startDate.toISOString().split('T')[0]}
-                          onChange={(e) => {
-                            const newDate = new Date(e.target.value);
-                            setReportOptions(prev => ({
-                              ...prev,
-                              startDate: newDate
-                            }));
-                          }}
-                          className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          onClick={() => setShowStartCalendar((v) => !v)}
+                          className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
                         />
                         <button
                           type="button"
-                          onClick={() => startDateRef.current && startDateRef.current.focus()}
+                          onClick={() => setShowStartCalendar((v) => !v)}
                           className="absolute right-3 top-2.5"
                           tabIndex={-1}
                           aria-label="Pick start date"
@@ -189,28 +186,37 @@ const Reports = () => {
                         >
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                         </button>
+                        {showStartCalendar && (
+                          <div className="absolute z-10 mt-2 bg-white border rounded shadow-lg">
+                            <CalendarPicker
+                              mode="single"
+                              selected={reportOptions.startDate}
+                              onSelect={(date) => {
+                                if (date) {
+                                  setReportOptions((prev) => ({ ...prev, startDate: date }));
+                                  setShowStartCalendar(false);
+                                }
+                              }}
+                              initialFocus
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                     
                     <div className="flex-1">
                       <label className="text-sm font-medium mb-1 block">End Date</label>
                       <div className="relative">
-                        <input 
-                          ref={endDateRef}
-                          type="date" 
+                        <input
+                          readOnly
+                          type="text"
                           value={reportOptions.endDate.toISOString().split('T')[0]}
-                          onChange={(e) => {
-                            const newDate = new Date(e.target.value);
-                            setReportOptions(prev => ({
-                              ...prev,
-                              endDate: newDate
-                            }));
-                          }}
-                          className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          onClick={() => setShowEndCalendar((v) => !v)}
+                          className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
                         />
                         <button
                           type="button"
-                          onClick={() => endDateRef.current && endDateRef.current.focus()}
+                          onClick={() => setShowEndCalendar((v) => !v)}
                           className="absolute right-3 top-2.5"
                           tabIndex={-1}
                           aria-label="Pick end date"
@@ -218,6 +224,21 @@ const Reports = () => {
                         >
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                         </button>
+                        {showEndCalendar && (
+                          <div className="absolute z-10 mt-2 bg-white border rounded shadow-lg">
+                            <CalendarPicker
+                              mode="single"
+                              selected={reportOptions.endDate}
+                              onSelect={(date) => {
+                                if (date) {
+                                  setReportOptions((prev) => ({ ...prev, endDate: date }));
+                                  setShowEndCalendar(false);
+                                }
+                              }}
+                              initialFocus
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                     
