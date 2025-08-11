@@ -1,8 +1,8 @@
 // src/config.js
 
 const config = {
-    // Replace with your Heroku app URL
-    apiBaseUrl: 'https://health-tracker-new-app-7de8aa984308.herokuapp.com/',
+    // Replace with your Fly.io app URL
+    apiBaseUrl: 'https://health-tracker-mvp.fly.dev/',
     
     // For reference (no API keys needed in frontend)
     airtable: {
