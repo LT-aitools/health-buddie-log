@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://star88etti.github.io/health-buddie-log",
+  "homepage": "https://lt-aitools.github.io/health-buddie-log",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
