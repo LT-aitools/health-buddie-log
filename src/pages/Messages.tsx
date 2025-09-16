@@ -94,7 +94,7 @@ const Messages = () => {
         if (response.messages && response.messages.length > 0) {
           // Log each message's content before processing
           response.messages.forEach((msg, index) => {
-            console.log(`Message ${index + 1}:`, {
+            console.log(`Message ${String(index + 1).replace(/\n|\r/g, "")}:`, {
               original_content: msg.content,
               category: msg.category,
               processed_data: msg.processed_data,
